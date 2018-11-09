@@ -94,7 +94,7 @@ app.post('/login', async function (req, res) {
     const lastMemo = await models.Memo.findOne({where: {owner: id, title: lastMemoTitle}});
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({
-        session: req.session,
+        body: req.session,
         lastMemoContent: lastMemo.dataValues
     }));
 });
@@ -198,7 +198,7 @@ app.delete('/memo/:user/:title', async function (req, res) {
 
     const destroyedResult = await models.Memo.destroy({where: {owner: user, title: title}});
     if (Number(destroyedResult) !== 1) {
-        res.res.writeHead(200, {'Content-Type': 'text/html'});
+        res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: `${title} 삭제에 실패했습니다`}));
         return;
     }

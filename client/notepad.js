@@ -36,32 +36,25 @@ class Notepad {
             headers: myHeaders,
             body: JSON.stringify({id: id, pwd: pwd})
         }).then((res) => res.json()).then((data) => {
-                console.log('session 객체', data);
-            if (data['body'] && data['body'].isLogin && data['body'].nickname) {
-                this.textarea.value = '';
-                this.currentFile = '';
-                this.currentUser = data['body'].nickname;
-                this.showList();
-                this.authForm.hidden = true;
-                this.userNickname.innerText = this.currentUser + '님';
-                this.userNav.hidden = false;
-                this.authFailMsg.hidden = true;
-            } else if (data['session'] && data['session'].isLogin && data['session'].nickname && data['lastMemoContent']) {
-                this.textarea.value = data['lastMemoContent'].content || '';
+            if (!data['body'].isLogin || !data['session']) {
+                this.authFailMsg.innerText = data['body'];
+                this.authFailMsg.hidden = false;
+                return;
+            }
+
+            if (data['lastMemoContent']) {
                 this.currentFile = data['lastMemoContent'];
                 this.textarea.setSelectionRange(data['lastMemoContent'].cursorStart, data['lastMemoContent'].cursorEnd);
                 this.textarea.focus();
-                this.currentUser = data['session'].nickname;
-                this.showList();
-                this.authForm.hidden = true;
-                this.userNickname.innerText = this.currentUser + '님';
-                this.userNav.hidden = false;
-                this.authFailMsg.hidden = true;
-            } else {
-                this.authFailMsg.innerText = data['body'];
-                this.authFailMsg.hidden = false;
-                // todo 로그인 성공 못 했을 경우, 새 메모 작성 등 못 하도록 방어
             }
+            this.textarea.value = '';
+            this.currentFile = '';
+            this.currentUser = data['body'].nickname;
+            this.showList();
+            this.authForm.hidden = true;
+            this.userNickname.innerText = this.currentUser + '님';
+            this.userNav.hidden = false;
+            this.authFailMsg.hidden = true;
         }).then(() => {
             this.id.value = '';
             this.pwd.value = '';
