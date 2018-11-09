@@ -72,6 +72,7 @@ app.post('/login', async function (req, res) {
         res.end(JSON.stringify({body: '아이디가 존재하지 않습니다!'}));
         return;
     }
+
     const encryptedPwd = await pdkdf2Async(pwd, salt);
     if (encryptedPwd !== queryResult.dataValues.pwd) {
         res.writeHead(200, {'Content-Type': 'text/html'});
@@ -83,15 +84,14 @@ app.post('/login', async function (req, res) {
     req.session.nickname = queryResult.dataValues.nickname;
 
     let lastMemoTitle = req.session.workedOnLast;
-    id = id.split('@')[0];
-
     if (!lastMemoTitle || lastMemoTitle === '') {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: req.session}));
         return;
     }
 
-    const lastMemo = await models.Memo.findOne({where: {owner: id, title: lastMemoTitle}})
+    id = id.split('@')[0];
+    const lastMemo = await models.Memo.findOne({where: {owner: id, title: lastMemoTitle}});
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({
         session: req.session,
@@ -100,74 +100,67 @@ app.post('/login', async function (req, res) {
 });
 
 // 전체 메모 리스트 가져오기
-app.get('/memos/:user', function (req, res) {
+app.get('/memos/:user', async function (req, res) {
     let user = req.params.user;
+    let data = [];
 
-    models.Memo.findAll({where: {owner: user}})
-        .then(results => {
-            let data = [];
-            for (let result of results) {
-                data.push(result.dataValues.title);
-            }
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            res.end(JSON.stringify({body: data}));
-        })
-        .catch(err => console.log(err));
+    const results = await models.Memo.findAll({where: {owner: user}});
+    for (let result of results) {
+        data.push(result.dataValues.title);
+    }
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(JSON.stringify({body: data}));
 });
 
 // 메모 읽기
-app.get('/memo/:user/:title', function (req, res) {
+app.get('/memo/:user/:title', async function (req, res) {
     let user = req.params.user;
     let id = req.params.title;
     req.session.workedOnLast = id;
 
-    models.Memo.findOne({where: {owner: user, title: id}})
-        .then(result => {
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            res.end(JSON.stringify({body: result.dataValues}));
-        })
-        .catch(err => console.log(err));
+    let result = await models.Memo.findOne({where: {owner: user, title: id}});
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(JSON.stringify({body: result.dataValues}));
 });
 
 // 새 메모 저장
-app.post('/memo/:user', function (req, res) {
+app.post('/memo/:user', async function (req, res) {
     let memo = req.body.memo;
     let user = req.body.user;
     let cursorStart = req.body.cursorStart;
     let cursorEnd = req.body.cursorEnd;
 
-    if (!memo || !user) return res.sendStatus(400);
+    if (!memo || !user) return res.sendStatus(404);
 
-    models.Memo.findAll({where: {owner: user}})
-        .then(results => {
-            let totalFiles = results.length;
-            let title = totalFiles + 1;
+    // 파일명 만들기
+    const results = await models.Memo.findAll({where: {owner: user}});
+    let fileTitles = [];
+    for(let result of results) {
+        fileTitles.push(result.dataValues.title);
+    }
+    fileTitles.sort((a, b) => a - b);
+    const lastFileTitle = fileTitles[results.length-1];
+    const title = Number(lastFileTitle) + 1;
 
-            for (let result of results) {
-                if (title === result.dataValues.title) {
-                    title = Number(result.dataValues.title) + 1;
-                }
-            }
+    let createdResult;
+    try {
+        createdResult = await models.Memo.create({
+            owner: user,
+            title: title,
+            content: memo,
+            cursorStart: cursorStart,
+            cursorEnd: cursorEnd,
+        });
 
-            models.Memo.create({
-                owner: user,
-                title: title,
-                content: memo,
-                cursorStart: cursorStart,
-                cursorEnd: cursorEnd
-            })
-                .then(createdResult => {
-                    req.session.workedOnLast = title;
-                    res.writeHead(200, {'Content-Type': 'text/html'});
-                    res.end(JSON.stringify({body: createdResult}));
-                })
-                .catch(err => console.error(err));
+    } catch (e) {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end(JSON.stringify({body: '저장에 실패했습니다!'}));
+        return;
+    }
 
-            return results;
-        })
-        .catch(err => {
-            console.error(err);
-        })
+    req.session.workedOnLast = title;
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(JSON.stringify({body: createdResult}));
 });
 
 // 메모 수정
@@ -186,36 +179,35 @@ app.put('/memo/:user/:title', async function (req, res) {
         where: {owner: user, title: title}
     });
 
-    if(updatedResult !== 1) {
+    if(Number(updatedResult) !== 1) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: '수정에 실패했습니다!'}));
         return;
     }
 
     req.session.workedOnLast = title;
-
     const result = await models.Memo.findOne({where: {owner: user, title: title}});
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: result.dataValues}));
 });
 
 // 메모 삭제
-app.delete('/memo/:user/:title', function (req, res) {
+app.delete('/memo/:user/:title', async function (req, res) {
     let user = req.params.user;
     let title = req.params.title;
 
-    models.Memo.destroy({where: {owner: user, title: title}})
-        .then(destroyedResult => {
-            if (destroyedResult === 1) {
-                req.session.workedOnLast = '';
-                let msg = `${title}이 삭제 완료되었습니다`;
-                res.writeHead(200, {'Content-Type': 'text/html'});
-                res.end(JSON.stringify({body: msg}));
-            }
-        })
-        .catch(err => console.log(err));
+    const destroyedResult = await models.Memo.destroy({where: {owner: user, title: title}});
+    if (Number(destroyedResult) !== 1) {
+        res.res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end(JSON.stringify({body: `${title} 삭제에 실패했습니다`}));
+        return;
+    }
+
+    req.session.workedOnLast = '';
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(JSON.stringify({body: `${title}이 삭제 완료되었습니다`}));
 });
 
-const server = app.listen(8080, () => {
+app.listen(8080, () => {
     console.log('Server started!');
 });
