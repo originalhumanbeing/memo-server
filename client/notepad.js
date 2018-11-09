@@ -25,6 +25,7 @@ class Notepad {
 
         this.addClickEvents();
         this.findCursor();
+        this.showMemo();
     }
 
     validateUser(id, pwd) {
@@ -36,7 +37,7 @@ class Notepad {
             headers: myHeaders,
             body: JSON.stringify({id: id, pwd: pwd})
         }).then((res) => res.json()).then((data) => {
-            if (!data['body'].isLogin || !data['session']) {
+            if (!data['body'] || !data['body'].isLogin) {
                 this.authFailMsg.innerText = data['body'];
                 this.authFailMsg.hidden = false;
                 return;
@@ -68,39 +69,33 @@ class Notepad {
         })
     }
 
-    // 전체 메모 리스트 렌더, 각 메모 선택시 메모 본문 렌더
     showList() {
-        if (this.currentUser === '') {
+        fetch(`http://localhost:8080/memos/${this.currentUser}`, {
+            method: 'get'
+        }).then((res) => res.json()).then((data) => {
+            if (!data['body'] || data['body'].length === 0) return;
+
             this.list.innerHTML = '';
-        } else {
-            fetch(`http://localhost:8080/memos/${this.currentUser}`, {
+            data['body'].sort((a, b) => a - b);
+            for (let memo of data['body']) {
+                let li = document.createElement('li');
+                li.classList.add(memo);
+                li.innerText = memo;
+                li.addEventListener('click', this.showMemo(this));
+                this.list.appendChild(li);
+            }
+        })
+    }
+
+    showMemo(notepad) {
+        return e => {
+            notepad.currentFile = e.target.className;
+            fetch(`http://localhost:8080/memo/${notepad.currentUser}/${notepad.currentFile}`, {
                 method: 'get'
             }).then((res) => res.json()).then((data) => {
-                this.list.innerHTML = '';
-                if (!data['body'] || data['body'].length === 0) {
-                    console.log('아직 아무 파일도 없습니다');
-                } else {
-                    data['body'].sort((a, b) => a - b);
-
-                    for (let memo of data['body']) {
-                        let li = document.createElement('li');
-                        li.classList.add(memo);
-                        li.innerText = memo;
-                        li.addEventListener('click', () => {
-                            this.currentFile = memo;
-                            fetch(`http://localhost:8080/memo/${this.currentUser}/${this.currentFile}`, {
-                                method: 'get'
-                            }).then((res) => res.json()).then((data) => {
-                                this.textarea.value = data.body.content;
-                                this.textarea.selectionStart = data.body.cursorStart;
-                                this.textarea.selectionEnd = data.body.cursorEnd;
-                                this.textarea.setSelectionRange(data.body.cursorStart, data.body.cursorEnd);
-                                this.textarea.focus();
-                            })
-                        });
-                        this.list.appendChild(li);
-                    }
-                }
+                notepad.textarea.value = data.body.content;
+                notepad.textarea.setSelectionRange(data.body.cursorStart, data.body.cursorEnd);
+                notepad.textarea.focus();
             })
         }
     }
@@ -116,7 +111,7 @@ class Notepad {
         this.logoutBtn.addEventListener('click', () => {
             this.currentUser = '';
             this.currentFile = '';
-            this.showList();
+            this.list.innerHTML = '';
             this.authForm.hidden = false;
             this.userNav.hidden = true;
         });
