@@ -49,6 +49,12 @@ class TextArea {
         fetch(`http://localhost:8080/memo/${currentUser}/${currentFile}`, {
             method: 'get'
         }).then((res) => res.json()).then((data) => {
+            if(!data.body.content) {
+                window.alert(data.body);
+                new List();
+                return;
+            }
+
             this.textarea.value = data.body.content;
             this.textarea.setSelectionRange(data.body.cursorStart, data.body.cursorEnd);
             this.textarea.focus();
@@ -200,6 +206,7 @@ class Notepad {
             currentUser = '';
             currentFile = '';
             this.list.innerHTML = '';
+            this.textarea.value = '';
             this.authForm.hidden = false;
             this.userNav.hidden = true;
         });

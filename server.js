@@ -64,10 +64,8 @@ app.post('/login', async function (req, res) {
         return;
     }
 
-    let queryResult;
-    try {
-        queryResult = await models.Member.findOne({where: {email: id}});
-    } catch (e) {
+    let queryResult = await models.Member.findOne({where: {email: id}});
+    if (queryResult === null) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: '아이디가 존재하지 않습니다!'}));
         return;
@@ -119,6 +117,11 @@ app.get('/memo/:user/:title', async function (req, res) {
     req.session.workedOnLast = id;
 
     let result = await models.Memo.findOne({where: {owner: user, title: id}});
+    if (result === null) {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end(JSON.stringify({body: '해당 메모가 존재하지 않습니다!'}));
+        return;
+    }
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: result.dataValues}));
 });
