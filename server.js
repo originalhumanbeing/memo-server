@@ -81,8 +81,8 @@ app.post('/login', async function (req, res) {
     req.session.isLogin = true;
     req.session.nickname = queryResult.dataValues.nickname;
 
-    let lastMemoTitle = req.session.workedOnLast;
-    if (!lastMemoTitle || lastMemoTitle === '') {
+    let lastMemoTitle = queryResult.dataValues.lastwork;
+    if (lastMemoTitle === null) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: req.session}));
         return;
@@ -93,7 +93,7 @@ app.post('/login', async function (req, res) {
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({
         body: req.session,
-        lastMemoContent: lastMemo.dataValues
+        lastwork: lastMemo.dataValues
     }));
 });
 
@@ -114,7 +114,14 @@ app.get('/memos/:user', async function (req, res) {
 app.get('/memo/:user/:title', async function (req, res) {
     let user = req.params.user;
     let id = req.params.title;
-    req.session.workedOnLast = id;
+    const updatedLastwork = await models.Member.update({
+        lastwork: id
+    }, {
+        where: {nickname: user}
+    });
+    if (updatedLastwork !== 1) {
+        console.log(err);
+    }
 
     let result = await models.Memo.findOne({where: {owner: user, title: id}});
     if (result === null) {
@@ -138,11 +145,11 @@ app.post('/memo/:user', async function (req, res) {
     // 파일명 만들기
     const results = await models.Memo.findAll({where: {owner: user}});
     let fileTitles = [];
-    for(let result of results) {
+    for (let result of results) {
         fileTitles.push(result.dataValues.title);
     }
     fileTitles.sort((a, b) => a - b);
-    const lastFileTitle = fileTitles[results.length-1];
+    const lastFileTitle = fileTitles[results.length - 1];
     const title = Number(lastFileTitle) + 1;
 
     let createdResult;
@@ -161,7 +168,14 @@ app.post('/memo/:user', async function (req, res) {
         return;
     }
 
-    req.session.workedOnLast = title;
+    const updatedLastwork = await models.Member.update({
+        lastwork: title
+    }, {
+        where: {nickname: user}
+    });
+    if (updatedLastwork !== 1) {
+        console.log(err);
+    }
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: createdResult}));
 });
@@ -182,13 +196,21 @@ app.put('/memo/:user/:title', async function (req, res) {
         where: {owner: user, title: title}
     });
 
-    if(Number(updatedResult) !== 1) {
+    if (updatedResult !== 1) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: '수정에 실패했습니다!'}));
         return;
     }
 
-    req.session.workedOnLast = title;
+    const updatedLastwork = await models.Member.update({
+        lastwork: title
+    }, {
+        where: {nickname: user}
+    });
+    if (updatedLastwork !== 1) {
+        console.log(err);
+    }
+
     const result = await models.Memo.findOne({where: {owner: user, title: title}});
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: result.dataValues}));
@@ -200,13 +222,20 @@ app.delete('/memo/:user/:title', async function (req, res) {
     let title = req.params.title;
 
     const destroyedResult = await models.Memo.destroy({where: {owner: user, title: title}});
-    if (Number(destroyedResult) !== 1) {
+    if (destroyedResult !== 1) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: `${title} 삭제에 실패했습니다`}));
         return;
     }
 
-    req.session.workedOnLast = '';
+    const updatedLastwork = await models.Member.update({
+        lastwork: null
+    }, {
+        where: {nickname: user}
+    });
+    if (updatedLastwork !== 1) {
+        console.log(err);
+    }
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: `${title}이 삭제 완료되었습니다`}));
 });

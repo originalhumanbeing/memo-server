@@ -49,12 +49,6 @@ class TextArea {
         fetch(`http://localhost:8080/memo/${currentUser}/${currentFile}`, {
             method: 'get'
         }).then((res) => res.json()).then((data) => {
-            if(!data.body.content) {
-                window.alert(data.body);
-                new List();
-                return;
-            }
-
             this.textarea.value = data.body.content;
             this.textarea.setSelectionRange(data.body.cursorStart, data.body.cursorEnd);
             this.textarea.focus();
@@ -181,14 +175,14 @@ class Notepad {
                 this.authFailMsg.hidden = false;
                 return;
             }
-
-            if (data['lastMemoContent']) {
-                currentFile = data['lastMemoContent'];
-                this.textarea.setSelectionRange(data['lastMemoContent'].cursorStart, data['lastMemoContent'].cursorEnd);
-                this.textarea.focus();
+            if (!data['lastwork']) {
+                currentFile = '';
             }
             this.textarea.value = '';
-            currentFile = '';
+            currentFile = data['lastwork'];
+            this.textarea.value = data['lastwork'].content;
+            this.textarea.setSelectionRange(data['lastwork'].cursorStart, data['lastwork'].cursorEnd);
+            this.textarea.focus();
             currentUser = data['body'].nickname;
             new List();
             this.authForm.hidden = true;
