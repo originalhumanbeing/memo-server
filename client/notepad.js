@@ -175,14 +175,17 @@ class Notepad {
                 this.authFailMsg.hidden = false;
                 return;
             }
+
             if (!data['lastwork']) {
                 currentFile = '';
+                this.textarea.value = '';
+                this.textarea.autofocus = true;
+            } else {
+                currentFile = data['lastwork'].title;
+                this.textarea.value = data['lastwork'].content;
+                this.textarea.setSelectionRange(data['lastwork'].cursorStart, data['lastwork'].cursorEnd);
+                this.textarea.focus();
             }
-            this.textarea.value = '';
-            currentFile = data['lastwork'];
-            this.textarea.value = data['lastwork'].content;
-            this.textarea.setSelectionRange(data['lastwork'].cursorStart, data['lastwork'].cursorEnd);
-            this.textarea.focus();
             currentUser = data['body'].nickname;
             new List();
             this.authForm.hidden = true;
