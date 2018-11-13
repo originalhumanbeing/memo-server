@@ -1,5 +1,4 @@
 const Sequelize = require('sequelize');
-// const sequelize = new Sequelize();
 
 module.exports = function (sequelize) {
     const member = sequelize.define('Member', {
@@ -19,6 +18,10 @@ module.exports = function (sequelize) {
         pwd: {
             type: Sequelize.STRING,
             allowNull: false
+        },
+        lastwork: {
+            type: Sequelize.INTEGER,
+            allowNull: true
         }
     }, {
         freezeTableName: true,

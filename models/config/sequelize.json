@@ -1,7 +1,8 @@
+
 {
   "development": {
-    "username": "memoMaster",
-    "password": "apah46",
+    "username": "root",
+    "password": "bsoup0404@",
     "database": "knowrememo",
     "host": "127.0.0.1",
     "dialect": "mysql",
