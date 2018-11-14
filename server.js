@@ -119,8 +119,8 @@ app.get('/memo/:user/:title', async function (req, res) {
     }, {
         where: {nickname: user}
     });
-    if (updatedLastwork !== 1) {
-        console.log(err);
+    if (updatedLastwork != 1) {
+        console.log(updatedLastwork);
     }
 
     let result = await models.Memo.findOne({where: {owner: user, title: id}});
@@ -173,8 +173,8 @@ app.post('/memo/:user', async function (req, res) {
     }, {
         where: {nickname: user}
     });
-    if (updatedLastwork !== 1) {
-        console.log(err);
+    if (updatedLastwork != 1) {
+        console.log(updatedLastwork);
     }
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: createdResult}));
@@ -196,7 +196,7 @@ app.put('/memo/:user/:title', async function (req, res) {
         where: {owner: user, title: title}
     });
 
-    if (updatedResult !== 1) {
+    if (updatedResult != 1) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: '수정에 실패했습니다!'}));
         return;
@@ -207,8 +207,8 @@ app.put('/memo/:user/:title', async function (req, res) {
     }, {
         where: {nickname: user}
     });
-    if (updatedLastwork !== 1) {
-        console.log(err);
+    if (updatedLastwork != 1) {
+        console.log(updatedLastwork);
     }
 
     const result = await models.Memo.findOne({where: {owner: user, title: title}});
@@ -222,7 +222,7 @@ app.delete('/memo/:user/:title', async function (req, res) {
     let title = req.params.title;
 
     const destroyedResult = await models.Memo.destroy({where: {owner: user, title: title}});
-    if (destroyedResult !== 1) {
+    if (destroyedResult != 1) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end(JSON.stringify({body: `${title} 삭제에 실패했습니다`}));
         return;
@@ -233,8 +233,8 @@ app.delete('/memo/:user/:title', async function (req, res) {
     }, {
         where: {nickname: user}
     });
-    if (updatedLastwork !== 1) {
-        console.log(err);
+    if (updatedLastwork != 1) {
+        console.log(updatedLastwork);
     }
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(JSON.stringify({body: `${title}이 삭제 완료되었습니다`}));
