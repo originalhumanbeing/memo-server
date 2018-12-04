@@ -6,6 +6,7 @@
     "database": "knowrememo",
     "host": "127.0.0.1",
     "dialect": "mysql",
+    "port": 13306,
     "pool": {
       "max": 5,
       "min": 0,
