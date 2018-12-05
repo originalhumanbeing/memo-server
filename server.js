@@ -87,7 +87,7 @@ app.post('/signup', async function (req, res) {
     }
 
     res.writeHead(201, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: '이제 Memo Memo를 사용해보세요!' }));
+    res.end(JSON.stringify({ success: 'ok', body: '이제 Memo Memo를 사용해보세요!' }));
     return;
 })
 
@@ -119,6 +119,8 @@ app.post('/login', async function (req, res) {
     req.session.isLogin = true;
     req.session.nickname = queryResult.dataValues.nickname;
 
+    console.log(req.session);
+    
     let lastMemoTitle = queryResult.dataValues.lastwork;
     if (lastMemoTitle === null) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
