@@ -41,7 +41,7 @@ models.sequelize.sync()
         process.exit();
     });
 
-// models.Member.hasMany(models.Memo, {foreignKey: 'owner'});
+models.Member.hasMany(models.Memo, { foreignKey: 'owner', sourceKey: 'nickname' });
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -56,6 +56,16 @@ function createToken(email) {
             }, (err, token) => {
                 if (err) reject(err);
                 resolve(token);
+            });
+    });
+}
+
+function verifyToken(token) {
+    return new Promise((resolve, reject) => {
+        jwt.verify(
+            token, 'secretCode', (err, decodedToken) => {
+                if (err || decodedToken == 'undefined') reject(err);
+                resolve(decodedToken);
             });
     });
 }
@@ -202,13 +212,19 @@ app.post('/memo/:user', async function (req, res) {
 
     // 파일명 만들기
     const results = await models.Memo.findAll({ where: { owner: user } });
-    let fileTitles = [];
-    for (let result of results) {
-        fileTitles.push(result.dataValues.title);
+
+    let title;
+    if (results.length === 0) {
+        title = 1;
+    } else {
+        let fileTitles = [];
+        for (let result of results) {
+            fileTitles.push(result.dataValues.title);
+        }
+        fileTitles.sort((a, b) => a - b);
+        const lastFileTitle = fileTitles[results.length - 1];
+        title = Number(lastFileTitle) + 1;
     }
-    fileTitles.sort((a, b) => a - b);
-    const lastFileTitle = fileTitles[results.length - 1];
-    const title = Number(lastFileTitle) + 1;
 
     let createdResult;
     try {
@@ -219,7 +235,6 @@ app.post('/memo/:user', async function (req, res) {
             cursorStart: cursorStart,
             cursorEnd: cursorEnd,
         });
-
     } catch (e) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(JSON.stringify({ body: '저장에 실패했습니다!' }));
@@ -227,13 +242,14 @@ app.post('/memo/:user', async function (req, res) {
     }
 
     const updatedLastwork = await models.Member.update({
-        lastwork: title
-    }, {
-            where: { nickname: user }
-        });
+        lastwork: title }, {
+        where: { nickname: user }});
+
     if (updatedLastwork != 1) {
         console.log(updatedLastwork);
+        // TODO: 마지막 작업 업데이트에 실패했으면 다시 시도하도록?
     }
+
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ body: createdResult }));
 });
