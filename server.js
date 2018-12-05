@@ -3,6 +3,7 @@ const express = require('express'),
     bodyParser = require('body-parser'),
     session = require('express-session'),
     MySQLStore = require('express-mysql-session')(session),
+    jwt = require('jsonwebtoken'),
     models = require('./models'),
     crypto = require('crypto'),
     cors = require('cors'),
@@ -46,6 +47,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+function createToken(email) {
+    return new Promise((resolve, reject) => {
+        jwt.sign({
+            id: email
+        }, 'secretCode', {
+                expiresIn: '7d'
+            }, (err, token) => {
+                if (err) reject(err);
+                resolve(token);
+            });
+    });
+}
+
 let salt = 'let there be salt';
 function pbkdf2Async(pwd, salt) {
     return new Promise((resolve, reject) => {
@@ -71,12 +85,14 @@ app.post('/signup', async function (req, res) {
         res.end(JSON.stringify({ body: '아이디가 이미 존재합니다' }));
         return;
     }
+    // TODO: email 형식 validation 하기
 
     if (pwd !== checkpwd) {
         res.writeHead(400, { 'Content-Type': 'text/html' });
         res.end(JSON.stringify({ body: '비밀번호가 일치하지 않습니다' }));
         return;
     }
+    // TODO: pwd 한영+최소 자릿수 validation 하기
 
     const encryptedPwd = await pbkdf2Async(pwd, salt);
     let newMember = await models.Member.create({ nickname, email, pwd: encryptedPwd });
@@ -116,25 +132,27 @@ app.post('/login', async function (req, res) {
         return;
     }
 
+    let encodedToken = await createToken(id);
     req.session.isLogin = true;
     req.session.nickname = queryResult.dataValues.nickname;
 
-    console.log(req.session);
-    
     let lastMemoTitle = queryResult.dataValues.lastwork;
-    if (lastMemoTitle === null) {
+    if (encodedToken && lastMemoTitle === null) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: req.session }));
+        res.end(JSON.stringify({ encodedToken, body: req.session }));
         return;
     }
 
     id = id.split('@')[0];
     const lastMemo = await models.Memo.findOne({ where: { owner: id, title: lastMemoTitle } });
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({
-        body: req.session,
-        lastwork: lastMemo.dataValues
-    }));
+    if (encodedToken && lastMemo != null) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(JSON.stringify({
+            encodedToken,
+            body: req.session,
+            lastwork: lastMemo.dataValues
+        }));
+    }
 });
 
 // 전체 메모 리스트 가져오기
