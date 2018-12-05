@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// jwt 토큰 Promise로 생성
 function createToken(email) {
     return new Promise((resolve, reject) => {
         jwt.sign({
@@ -60,6 +61,7 @@ function createToken(email) {
     });
 }
 
+// verify, decode한 jwt token Promise로 반환
 function verifyToken(token) {
     return new Promise((resolve, reject) => {
         jwt.verify(
@@ -214,6 +216,7 @@ app.post('/memo/:user', async function (req, res) {
     const results = await models.Memo.findAll({ where: { owner: user } });
 
     let title;
+    // 초기화를 잊지 말자
     if (results.length === 0) {
         title = 1;
     } else {
