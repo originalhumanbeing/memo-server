@@ -7,6 +7,7 @@ const express = require('express'),
     models = require('./models'),
     crypto = require('crypto'),
     cors = require('cors'),
+    Op = require('Sequelize').Op,
     app = express();
 
 const sessionStoreOptions = {
@@ -48,10 +49,10 @@ app.get('/', (req, res) => {
 });
 
 // jwt 토큰 Promise로 생성
-function createToken(email) {
+function createToken(nickname) {
     return new Promise((resolve, reject) => {
         jwt.sign({
-            id: email
+            nickname: nickname
         }, 'secretCode', {
                 expiresIn: '7d'
             }, (err, token) => {
@@ -91,13 +92,20 @@ app.post('/signup', async function (req, res) {
         return;
     }
 
-    let queryResult = await models.Member.findOne({ where: { email } });
-    if (queryResult != null) {
+    let queryResult = await models.Member.findOne({ where: [Op.or][{ email }, { nickname }] });
+
+    if (queryResult != null && queryResult.dataValues.email === email) {
         res.writeHead(400, { 'Content-Type': 'text/html' });
         res.end(JSON.stringify({ body: '아이디가 이미 존재합니다' }));
         return;
     }
     // TODO: email 형식 validation 하기
+
+    if (queryResult != null && queryResult.dataValues.nickname === nickname) {
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end(JSON.stringify({ body: '닉네임이 이미 존재합니다' }));
+        return;
+    }
 
     if (pwd !== checkpwd) {
         res.writeHead(400, { 'Content-Type': 'text/html' });
@@ -123,6 +131,7 @@ app.post('/signup', async function (req, res) {
 app.post('/login', async function (req, res) {
     let id = req.body.id;
     let pwd = req.body.pwd;
+    let nickname = id.split('@')[0];
 
     if (!id || !pwd) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -144,7 +153,7 @@ app.post('/login', async function (req, res) {
         return;
     }
 
-    let encodedToken = await createToken(id);
+    let encodedToken = await createToken(nickname);
     req.session.isLogin = true;
     req.session.nickname = queryResult.dataValues.nickname;
 
@@ -155,8 +164,8 @@ app.post('/login', async function (req, res) {
         return;
     }
 
-    id = id.split('@')[0];
-    const lastMemo = await models.Memo.findOne({ where: { owner: id, title: lastMemoTitle } });
+    nickname = id.split('@')[0];
+    const lastMemo = await models.Memo.findOne({ where: { owner: nickname, title: lastMemoTitle } });
     if (encodedToken && lastMemo != null) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(JSON.stringify({
@@ -169,8 +178,13 @@ app.post('/login', async function (req, res) {
 
 // 전체 메모 리스트 가져오기
 app.get('/memos/:user', async function (req, res) {
+    let token = req.headers['authorization'];
     let user = req.params.user;
     let data = [];
+
+    let decodedToken = await verifyToken(token);
+    console.log('@@@@@@ 전체 메모 읽기 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
+    if (decodedToken.nickname !== user) return res.sendStatus(404);
 
     const results = await models.Memo.findAll({ where: { owner: user } });
     for (let result of results) {
@@ -182,8 +196,14 @@ app.get('/memos/:user', async function (req, res) {
 
 // 메모 읽기
 app.get('/memo/:user/:title', async function (req, res) {
+    let token = req.headers['authorization'];
     let user = req.params.user;
     let id = req.params.title;
+    
+    let decodedToken = await verifyToken(token);
+    console.log('@@@@@@ 메모 개별 읽기 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
+    if (decodedToken.nickname !== user) return res.sendStatus(404);
+
     const updatedLastwork = await models.Member.update({
         lastwork: id
     }, {
@@ -205,10 +225,15 @@ app.get('/memo/:user/:title', async function (req, res) {
 
 // 새 메모 저장
 app.post('/memo/:user', async function (req, res) {
+    let token = req.headers['authorization'];
     let memo = req.body.memo;
     let user = req.body.user;
     let cursorStart = req.body.cursorStart;
     let cursorEnd = req.body.cursorEnd;
+
+    let decodedToken = await verifyToken(token);
+    console.log('@@@@@@ 저장 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
+    if (decodedToken.nickname !== user) return res.sendStatus(404);
 
     if (!memo || !user) return res.sendStatus(404);
 
@@ -245,8 +270,10 @@ app.post('/memo/:user', async function (req, res) {
     }
 
     const updatedLastwork = await models.Member.update({
-        lastwork: title }, {
-        where: { nickname: user }});
+        lastwork: title
+    }, {
+            where: { nickname: user }
+        });
 
     if (updatedLastwork != 1) {
         console.log(updatedLastwork);
@@ -259,11 +286,16 @@ app.post('/memo/:user', async function (req, res) {
 
 // 메모 수정
 app.put('/memo/:user/:title', async function (req, res) {
+    let token = req.headers['authorization'];
     const user = req.params.user;
     const title = req.params.title;
     const memo = req.body.memo;
     const cursorStart = req.body.cursorStart;
     const cursorEnd = req.body.cursorEnd;
+
+    let decodedToken = await verifyToken(token);
+    console.log('@@@@@@ 수정 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
+    if (decodedToken.nickname !== user) return res.sendStatus(404);
 
     const updatedResult = await models.Memo.update({
         content: memo,
@@ -295,8 +327,13 @@ app.put('/memo/:user/:title', async function (req, res) {
 
 // 메모 삭제
 app.delete('/memo/:user/:title', async function (req, res) {
+    let token = req.headers['authorization'];
     let user = req.params.user;
     let title = req.params.title;
+    
+    let decodedToken = await verifyToken(token);
+    console.log('@@@@@@ 삭제 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
+    if (decodedToken.nickname !== user) return res.sendStatus(404);
 
     const destroyedResult = await models.Memo.destroy({ where: { owner: user, title: title } });
     if (destroyedResult != 1) {
