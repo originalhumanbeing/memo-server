@@ -41,7 +41,7 @@ models.sequelize.sync()
         process.exit();
     });
 
-models.Member.hasMany(models.Memo, { foreignKey: 'owner', sourceKey: 'nickname' });
+// models.Member.hasMany(models.Memo, { foreignKey: 'owner', sourceKey: 'nickname' });
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
