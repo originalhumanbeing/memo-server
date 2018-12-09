@@ -7,7 +7,7 @@ const express = require('express'),
     models = require('./models'),
     crypto = require('crypto'),
     cors = require('cors'),
-    Op = require('Sequelize').Op,
+    Op = require('sequelize').Op,
     app = express();
 
 const sessionStoreOptions = {
@@ -21,7 +21,7 @@ const sessionStoreOptions = {
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(express.static('client'));
+// app.use(express.static('client'));
 app.use(session({
     secret: 'keyboard cat',
     resave: false,
