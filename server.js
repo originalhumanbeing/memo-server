@@ -10,27 +10,9 @@ const express = require('express'),
     Op = require('sequelize').Op,
     app = express();
 
-const sessionStoreOptions = {
-    host: 'localhost',
-    port: 13306,
-    user: 'root',
-    password: 'bsoup0404@',
-    database: 'knowrememo'
-};
-
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-// app.use(express.static('client'));
-app.use(session({
-    secret: 'keyboard cat',
-    resave: false,
-    saveUninitialized: true,
-    store: new MySQLStore(sessionStoreOptions),
-    cookie: {
-        maxAge: 24000 * 60 * 60
-    }
-}));
 
 models.sequelize.sync()
     .then(() => {
