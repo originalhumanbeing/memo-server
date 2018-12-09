@@ -131,49 +131,65 @@ app.post('/signup', async function (req, res) {
 app.post('/login', async function (req, res) {
     let id = req.body.id;
     let pwd = req.body.pwd;
-    let nickname = id.split('@')[0];
 
     if (!id || !pwd) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '로그인이 필요합니다!' }));
+        res.end(JSON.stringify({ msg: '로그인이 필요합니다!' }));
         return;
     }
 
-    let queryResult = await models.Member.findOne({ where: { email: id } });
-    if (queryResult === null) {
+    let thisMember = await models.Member.findOne({ where: { email: id } });
+    if (thisMember === null) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '아이디가 존재하지 않습니다!' }));
+        res.end(JSON.stringify({ msg: '아이디가 존재하지 않습니다!' }));
         return;
     }
 
     const encryptedPwd = await pbkdf2Async(pwd, salt);
-    if (encryptedPwd !== queryResult.dataValues.pwd) {
+    if (encryptedPwd !== thisMember.dataValues.pwd) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '비밀번호가 일치하지 않습니다!' }));
+        res.end(JSON.stringify({ msg: '비밀번호가 일치하지 않습니다!' }));
         return;
     }
 
-    let encodedToken = await createToken(nickname);
-    req.session.isLogin = true;
-    req.session.nickname = queryResult.dataValues.nickname;
+    const nickname = thisMember.dataValues.nickname;
+    const token = await createToken(nickname);
 
-    let lastMemoTitle = queryResult.dataValues.lastwork;
-    if (encodedToken && lastMemoTitle === null) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ encodedToken, body: req.session }));
-        return;
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(JSON.stringify({
+        token,
+        nickname,
+        msg: "로그인이 성공했습니다!" 
+    }));
+});
+
+app.get('/initmemo/:nickname', async function (req, res) {
+    // 인증
+    const nickname = req.params.nickname;
+    try {
+        let token = req.headers['authorization'];
+        let decodedToken = await verifyToken(token);
+        if (decodedToken.nickname !== nickname) return res.sendStatus(400);
+    } catch (e) {
+        return res.sendStatus(400);
+    }
+    
+    // 메모 리스트
+    let memoTitles = [];
+    const results = await models.Memo.findAll({ where: { owner: nickname } });
+    for (let result of results) {
+        memoTitles.push(result.dataValues.title);
     }
 
-    nickname = id.split('@')[0];
-    const lastMemo = await models.Memo.findOne({ where: { owner: nickname, title: lastMemoTitle } });
-    if (encodedToken && lastMemo != null) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({
-            encodedToken,
-            body: req.session,
-            lastwork: lastMemo.dataValues
-        }));
-    }
+    // 메모 본문
+    let thisMember = await models.Member.findOne({ where: { nickname: nickname } });
+    let lastMemoTitle = thisMember.dataValues.lastwork;
+    const lastWork = await models.Memo.findOne({ where: { owner: nickname, title: lastMemoTitle } });
+    
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(JSON.stringify({
+        memoTitles, lastWork
+    }));
 });
 
 // 전체 메모 리스트 가져오기
