@@ -1,8 +1,8 @@
 const express = require('express'),
     path = require('path'),
     bodyParser = require('body-parser'),
-    session = require('express-session'),
-    MySQLStore = require('express-mysql-session')(session),
+    // session = require('express-session'),
+    // MySQLStore = require('express-mysql-session')(session),
     jwt = require('jsonwebtoken'),
     models = require('./models'),
     crypto = require('crypto'),
@@ -236,21 +236,22 @@ app.post('/memo/:user', async function (req, res) {
     if (!memo || !user) return res.sendStatus(404);
 
     // 파일명 만들기
-    const results = await models.Memo.findAll({ where: { owner: user } });
+    // const results = await models.Memo.findAll({ where: { owner: user } });
 
-    let title;
+    let title = String(memo).substring(0, 10);
+    
     // 초기화를 잊지 말자
-    if (results.length === 0) {
-        title = 1;
-    } else {
-        let fileTitles = [];
-        for (let result of results) {
-            fileTitles.push(result.dataValues.title);
-        }
-        fileTitles.sort((a, b) => a - b);
-        const lastFileTitle = fileTitles[results.length - 1];
-        title = Number(lastFileTitle) + 1;
-    }
+    // if (results.length === 0) {
+    //     title = 1;
+    // } else {
+    //     let fileTitles = [];
+    //     for (let result of results) {
+    //         fileTitles.push(result.dataValues.title);
+    //     }
+    //     fileTitles.sort((a, b) => a - b);
+    //     const lastFileTitle = fileTitles[results.length - 1];
+    //     title = Number(lastFileTitle) + 1;
+    // }
 
     let createdResult;
     try {
