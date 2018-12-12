@@ -74,6 +74,7 @@ app.post('/signup', async function (req, res) {
         return;
     }
 
+    debugger;
     let queryResult = await models.Member.findOne({ where: [Op.or][{ email }, { nickname }] });
 
     if (queryResult != null && queryResult.dataValues.email === email) {
