@@ -20,7 +20,7 @@ module.exports = function (sequelize) {
             allowNull: false
         },
         lastwork: {
-            type: Sequelize.INTEGER,
+            type: Sequelize.STRING,
             allowNull: true
         }
     }, {

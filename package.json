@@ -8,6 +8,8 @@
     "express-session": "^1.15.6",
     "express-session-sequelize": "^1.1.0",
     "jsonwebtoken": "^8.4.0",
+    "moment": "^2.23.0",
+    "moment-timezone": "^0.5.23",
     "mysql": "^2.16.0",
     "mysql2": "^1.6.1",
     "sequelize": "^4.41.0",
