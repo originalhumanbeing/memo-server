@@ -21,7 +21,9 @@ app.post('/signup', async function (req, res) {
         return;
     }
 
-    let queryResult = await models.Member.findOne({ where: [Op.or][{ email }, { nickname }] });
+    let queryResult = await models.Member.findOne({
+        where: {[Op.or]: [{email: email}, {nickname: nickname}]}
+    });
 
     if (queryResult != null && queryResult.dataValues.email === email) {
         res.writeHead(400, { 'Content-Type': 'text/html' });
@@ -112,15 +114,15 @@ app.get('/initmemo/:nickname', async function (req, res) {
 });
 
 // 전체 메모 리스트 가져오기
-app.get('/memos/:user', async function (req, res) {
+app.get('/memos/:nickname', async function (req, res) {
     let token = req.headers['authorization'];
-    let user = req.params.user;
+    let nickname = req.params.nickname;
     let memos = [];
 
     let decodedToken = await auth.verifyToken(token);
-    if (decodedToken.nickname !== user) return res.sendStatus(404);
+    if (decodedToken.nickname !== nickname) return res.sendStatus(404);
 
-    const results = await models.Memo.findAll({ where: { owner: user } });
+    const results = await models.Memo.findAll({ where: { owner: nickname } });
     for (let result of results) {
         let updatedAt = momentTz(result.dataValues.updatedAt, "Asia/Seoul").format("YYYY/MM/DD HH:mm:ss");
         memos.push({
