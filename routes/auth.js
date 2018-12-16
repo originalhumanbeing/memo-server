@@ -1,10 +1,11 @@
 const models = require('../models'),
     Op = require('sequelize').Op,
     auth = require('../helpers/auth'),
-    router = require('express').Router();
+    router = require('express').Router(),
+    { asyncErrorHandle } = require('../helpers/aysncHelper');
 
 
-router.post('/signup', async function (req, res) {
+router.post('/signup', asyncErrorHandle(async (req, res) => {
     const { nickname, email, pwd, checkpwd } = req.body;
 
     if (!nickname || !email || !pwd || !checkpwd) {
@@ -47,10 +48,10 @@ router.post('/signup', async function (req, res) {
 
     res.writeHead(201, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ success: 'ok', body: '이제 Memo Memo를 사용해보세요!' }));
-});
+}));
 
 // login 하기
-router.post('/login', async function (req, res) {
+router.post('/login', asyncErrorHandle(async (req, res) => {
     let id = req.body.id;
     let pwd = req.body.pwd;
 
@@ -83,6 +84,6 @@ router.post('/login', async function (req, res) {
         nickname,
         msg: "로그인이 성공했습니다!"
     }));
-});
+}));
 
 module.exports = router;

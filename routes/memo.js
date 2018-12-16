@@ -1,10 +1,11 @@
 const models = require('../models/index'),
     auth = require('../helpers/auth'),
-    router = require('express').Router();
+    router = require('express').Router(),
+    { asyncErrorHandle } = require('../helpers/aysncHelper');
 
 const momentTz = require('moment-timezone');
 
-router.get('/initmemo/:nickname', async function (req, res) {
+router.get('/initmemo/:nickname', asyncErrorHandle(async (req, res) =>{
     // 인증
     const nickname = req.params.nickname;
     try {
@@ -22,10 +23,10 @@ router.get('/initmemo/:nickname', async function (req, res) {
 
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ lastWork }));
-});
+}));
 
 // 전체 메모 리스트 가져오기
-router.get('/memos/:nickname', async function (req, res) {
+router.get('/memos/:nickname', asyncErrorHandle(async (req, res) => {
     let token = req.headers['authorization'];
     let nickname = req.params.nickname;
     let memos = [];
@@ -43,10 +44,10 @@ router.get('/memos/:nickname', async function (req, res) {
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ body: memos }));
-});
+}));
 
 // 메모 읽기
-router.get('/memo/:user/:currentFile', async function (req, res) {
+router.get('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
     let token = req.headers['authorization'];
     let user = req.params.user;
     let memoId = req.params.currentFile;
@@ -72,10 +73,10 @@ router.get('/memo/:user/:currentFile', async function (req, res) {
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ body: result.dataValues }));
-});
+}));
 
 // 새 메모 저장
-router.post('/memo/:user', async function (req, res) {
+router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
     let token = req.headers['authorization'];
     let memoId = req.body.memoId;
     let memo = req.body.memo;
@@ -148,10 +149,10 @@ router.post('/memo/:user', async function (req, res) {
 
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ body: createdResult.dataValues }));
-});
+}));
 
 // 메모 삭제
-router.delete('/memo/:user/:currentFile', async function (req, res) {
+router.delete('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
     let token = req.headers['authorization'];
     let user = req.params.user;
     let memoId = req.params.currentFile;
@@ -176,6 +177,6 @@ router.delete('/memo/:user/:currentFile', async function (req, res) {
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(JSON.stringify({ body: `삭제가 완료되었습니다` }));
-});
+}));
 
 module.exports = router;
