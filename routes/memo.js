@@ -1,99 +1,10 @@
-const path = require('path'),
-    models = require('./models'),
-    Op = require('sequelize').Op,
-    auth = require('./auth'),
-    app = require('./app');
+const models = require('../models/index'),
+    auth = require('../helpers/auth'),
+    router = require('express').Router();
 
 const momentTz = require('moment-timezone');
 
-// models.Member.hasMany(models.Memo, { foreignKey: 'owner', sourceKey: 'nickname' });
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.post('/signup', async function (req, res) {
-    const { nickname, email, pwd, checkpwd } = req.body;
-
-    if (!nickname || !email || !pwd || !checkpwd) {
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '모든 항목을 작성해주셔야 가입이 가능합니다' }));
-        return;
-    }
-
-    let queryResult = await models.Member.findOne({
-        where: {[Op.or]: [{email: email}, {nickname: nickname}]}
-    });
-
-    if (queryResult != null && queryResult.dataValues.email === email) {
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '아이디가 이미 존재합니다' }));
-        return;
-    }
-    // TODO: email 형식 validation 하기
-
-    if (queryResult != null && queryResult.dataValues.nickname === nickname) {
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '닉네임이 이미 존재합니다' }));
-        return;
-    }
-
-    if (pwd !== checkpwd) {
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '비밀번호가 일치하지 않습니다' }));
-        return;
-    }
-    // TODO: pwd 한영+최소 자릿수 validation 하기
-
-    const encryptedPwd = await auth.pbkdf2Async(pwd, auth.SALT);
-    let newMember = await models.Member.create({ nickname, email, pwd: encryptedPwd });
-    if (newMember == null) {
-        res.writeHead(500, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '회원가입을 다시 시도해주세요' }));
-        return;
-    }
-
-    res.writeHead(201, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ success: 'ok', body: '이제 Memo Memo를 사용해보세요!' }));
-});
-
-// login 하기
-app.post('/login', async function (req, res) {
-    let id = req.body.id;
-    let pwd = req.body.pwd;
-
-    if (!id || !pwd) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ msg: '로그인이 필요합니다!' }));
-        return;
-    }
-
-    let thisMember = await models.Member.findOne({ where: { email: id } });
-    if (thisMember === null) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ msg: '아이디가 존재하지 않습니다!' }));
-        return;
-    }
-
-    const encryptedPwd = await auth.pbkdf2Async(pwd, auth.SALT);
-    if (encryptedPwd !== thisMember.dataValues.pwd) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ msg: '비밀번호가 일치하지 않습니다!' }));
-        return;
-    }
-
-    const nickname = thisMember.dataValues.nickname;
-    const token = await auth.createToken(nickname);
-
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({
-        token,
-        nickname,
-        msg: "로그인이 성공했습니다!"
-    }));
-});
-
-app.get('/initmemo/:nickname', async function (req, res) {
+router.get('/initmemo/:nickname', async function (req, res) {
     // 인증
     const nickname = req.params.nickname;
     try {
@@ -114,7 +25,7 @@ app.get('/initmemo/:nickname', async function (req, res) {
 });
 
 // 전체 메모 리스트 가져오기
-app.get('/memos/:nickname', async function (req, res) {
+router.get('/memos/:nickname', async function (req, res) {
     let token = req.headers['authorization'];
     let nickname = req.params.nickname;
     let memos = [];
@@ -135,7 +46,7 @@ app.get('/memos/:nickname', async function (req, res) {
 });
 
 // 메모 읽기
-app.get('/memo/:user/:currentFile', async function (req, res) {
+router.get('/memo/:user/:currentFile', async function (req, res) {
     let token = req.headers['authorization'];
     let user = req.params.user;
     let memoId = req.params.currentFile;
@@ -164,7 +75,7 @@ app.get('/memo/:user/:currentFile', async function (req, res) {
 });
 
 // 새 메모 저장
-app.post('/memo/:user', async function (req, res) {
+router.post('/memo/:user', async function (req, res) {
     let token = req.headers['authorization'];
     let memoId = req.body.memoId;
     let memo = req.body.memo;
@@ -240,7 +151,7 @@ app.post('/memo/:user', async function (req, res) {
 });
 
 // 메모 삭제
-app.delete('/memo/:user/:currentFile', async function (req, res) {
+router.delete('/memo/:user/:currentFile', async function (req, res) {
     let token = req.headers['authorization'];
     let user = req.params.user;
     let memoId = req.params.currentFile;
@@ -251,7 +162,7 @@ app.delete('/memo/:user/:currentFile', async function (req, res) {
     const destroyedResult = await models.Memo.destroy({ where: { owner: user, id: memoId } });
     if (destroyedResult != 1) {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: `${memoId} 삭제에 실패했습니다` }));
+        res.end(JSON.stringify({ body: `삭제에 실패했습니다` }));
         return;
     }
 
@@ -264,9 +175,7 @@ app.delete('/memo/:user/:currentFile', async function (req, res) {
         console.log(updatedLastwork);
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: `${memoId} 삭제가 완료되었습니다` }));
+    res.end(JSON.stringify({ body: `삭제가 완료되었습니다` }));
 });
 
-app.listen(8080, () => {
-    console.log('Server started!');
-});
+module.exports = router;
