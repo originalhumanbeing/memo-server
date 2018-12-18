@@ -12,20 +12,19 @@ app.use(bodyParser.json());
 app.use(require('./routes/auth'));
 app.use(require('./routes/memo'));
 
-app.use(function(req, res, next) {
+// exception handler
+app.use((req, res, next) => {
     const err = new Error('Not Found');
     err.status = 404;
     next(err);
 });
 
-app.use(function(err, req, res) {
+app.use((err, req, res, next) => {
     res.status(err.status || 500);
-    res.json({'errors': {
-            message: err.message,
-            error: {}
-        }});
+    res.json({
+        body: err.message
+    });
 });
-
 
 // run
 app.listen(8080, () => {

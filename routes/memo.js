@@ -1,7 +1,7 @@
 const models = require('../models/index'),
     auth = require('../helpers/auth'),
     router = require('express').Router(),
-    { asyncErrorHandle } = require('../helpers/aysncHelper');
+    { asyncErrorHandle } = require('../helpers/asyncHelper');
 
 const momentTz = require('moment-timezone');
 
@@ -21,8 +21,8 @@ router.get('/initmemo/:nickname', asyncErrorHandle(async (req, res) =>{
     let lastMemoId = thisMember.dataValues.lastwork;
     const lastWork = await models.Memo.findOne({ where: { owner: nickname, id: lastMemoId } });
 
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ lastWork }));
+    res.status(200);
+    res.json({ lastWork });
 }));
 
 // 전체 메모 리스트 가져오기
@@ -42,8 +42,8 @@ router.get('/memos/:nickname', asyncErrorHandle(async (req, res) => {
             title: result.dataValues.title,
             updatedAt: updatedAt });
     }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: memos }));
+    res.status(200);
+    res.json({ body: memos });
 }));
 
 // 메모 읽기
@@ -67,12 +67,12 @@ router.get('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
 
     let result = await models.Memo.findOne({ where: { owner: user, id: memoId } });
     if (result === null) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '해당 메모가 존재하지 않습니다!' }));
+        res.status(200);
+        res.json({ body: '해당 메모가 존재하지 않습니다!' });
         return;
     }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: result.dataValues }));
+    res.status(200);
+    res.json({ body: result.dataValues });
 }));
 
 // 새 메모 저장
@@ -116,8 +116,8 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
         }
 
         const updatedMemo = await models.Memo.findOne({ where: { id: memoId } });
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: updatedMemo.dataValues }));
+        res.status(200);
+        res.json({ body: updatedMemo.dataValues });
         return;
     }
 
@@ -131,8 +131,8 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
             cursorEnd: cursorEnd,
         });
     } catch (e) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: '저장에 실패했습니다!' }));
+        res.status(200);
+        res.json({ body: '저장에 실패했습니다!' });
         return;
     }
 
@@ -147,8 +147,8 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
         // TODO: 마지막 작업 업데이트에 실패했으면 다시 시도하도록?
     }
 
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: createdResult.dataValues }));
+    res.status(200);
+    res.json({ body: createdResult.dataValues });
 }));
 
 // 메모 삭제
@@ -162,8 +162,8 @@ router.delete('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
 
     const destroyedResult = await models.Memo.destroy({ where: { owner: user, id: memoId } });
     if (destroyedResult != 1) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(JSON.stringify({ body: `삭제에 실패했습니다` }));
+        res.status(200);
+        res.json({ body: `삭제에 실패했습니다` });
         return;
     }
 
@@ -175,8 +175,8 @@ router.delete('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
     if (updatedLastwork != 1) {
         console.log(updatedLastwork);
     }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(JSON.stringify({ body: `삭제가 완료되었습니다` }));
+    res.status(200);
+    res.json({ body: `삭제가 완료되었습니다` });
 }));
 
 module.exports = router;
