@@ -2,7 +2,8 @@ const models = require('../models'),
     auth = require('../helpers/auth'),
     router = require('express').Router(),
     {UserException, UnexpectedException} = require('../helpers/exceptions'),
-    {asyncErrorHandle} = require('../helpers/asyncHelper');
+    {asyncErrorHandle} = require('../helpers/asyncHelper'),
+    {check, validationResult} = require('express-validator/check');
 
 
 router.post('/signup', asyncErrorHandle(async (req, res) => {

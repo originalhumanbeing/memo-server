@@ -1,7 +1,8 @@
 const models = require('../models/index'),
     auth = require('../helpers/auth'),
     router = require('express').Router(),
-    { asyncErrorHandle } = require('../helpers/asyncHelper');
+    {asyncErrorHandle} = require('../helpers/asyncHelper'),
+    {UserException, UnexpectedException} = require('../helpers/exceptions');
 
 const momentTz = require('moment-timezone');
 
@@ -9,9 +10,7 @@ router.get('/initmemo/:nickname', asyncErrorHandle(async (req, res) =>{
     // 인증
     const nickname = req.params.nickname;
     try {
-        let token = req.headers['authorization'];
-        let decodedToken = await auth.verifyToken(token);
-        if (decodedToken.nickname !== nickname) return res.sendStatus(400);
+        await decodeToken(req, nickname);
     } catch (e) {
         return res.sendStatus(400);
     }
@@ -27,12 +26,13 @@ router.get('/initmemo/:nickname', asyncErrorHandle(async (req, res) =>{
 
 // 전체 메모 리스트 가져오기
 router.get('/memos/:nickname', asyncErrorHandle(async (req, res) => {
-    let token = req.headers['authorization'];
-    let nickname = req.params.nickname;
     let memos = [];
-
-    let decodedToken = await auth.verifyToken(token);
-    if (decodedToken.nickname !== nickname) return res.sendStatus(404);
+    const nickname = req.params.nickname;
+    try {
+        await decodeToken(req, nickname);
+    } catch (e) {
+        return res.sendStatus(400);
+    }
 
     const results = await models.Memo.findAll({ where: { owner: nickname } });
     for (let result of results) {
@@ -47,25 +47,27 @@ router.get('/memos/:nickname', asyncErrorHandle(async (req, res) => {
 }));
 
 // 메모 읽기
-router.get('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
-    let token = req.headers['authorization'];
-    let user = req.params.user;
+router.get('/memo/:nickname/:currentFile', asyncErrorHandle(async (req, res) => {
+    const nickname = req.params.nickname;
+    try {
+        await decodeToken(req, nickname);
+    } catch (e) {
+        console.log(e);
+        return res.sendStatus(400);
+    }
+
     let memoId = req.params.currentFile;
-
-    let decodedToken = await auth.verifyToken(token);
-    console.log('@@@@@@ 메모 개별 읽기 : 토큰 검사 @@@@@@', decodedToken.nickname === user);
-    if (decodedToken.nickname !== user) return res.sendStatus(404);
-
     const updatedLastwork = await models.Member.update({
         lastwork: memoId
     }, {
-            where: { nickname: user }
+            where: { nickname }
         });
+
     if (updatedLastwork != 1) {
         console.log(updatedLastwork);
     }
 
-    let result = await models.Memo.findOne({ where: { owner: user, id: memoId } });
+    let result = await models.Memo.findOne({ where: { owner: nickname, id: memoId } });
     if (result === null) {
         res.status(200);
         res.json({ body: '해당 메모가 존재하지 않습니다!' });
@@ -76,18 +78,21 @@ router.get('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
 }));
 
 // 새 메모 저장
-router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
-    let token = req.headers['authorization'];
+router.post('/memo/:nickname', asyncErrorHandle(async (req, res) => {
+    const nickname = req.params.nickname;
+    try {
+        await decodeToken(req, nickname);
+    } catch (e) {
+        console.log(e);
+        return res.sendStatus(400);
+    }
+
     let memoId = req.body.memoId;
     let memo = req.body.memo;
-    let user = req.body.user;
     let cursorStart = req.body.cursorStart;
     let cursorEnd = req.body.cursorEnd;
 
-    let decodedToken = await auth.verifyToken(token);
-    if (decodedToken.nickname !== user) return res.sendStatus(404);
-
-    if (!memo || !user) return res.sendStatus(404);
+    if (!memo || !nickname) return res.sendStatus(404);
 
     let title = String(memo).substring(0, 20);
     if (title.length >= 20) {
@@ -101,13 +106,13 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
             cursorStart: cursorStart,
             cursorEnd: cursorEnd
         }, {
-            where: { id: memoId, owner: user }
+            where: { id: memoId, owner: nickname }
         });
 
         const updatedLastwork = await models.Member.update({
             lastwork: memoId
         }, {
-            where: { nickname: user }
+            where: { nickname }
         });
 
         if (updatedLastwork != 1) {
@@ -124,7 +129,7 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
     let createdResult;
     try {
         createdResult = await models.Memo.create({
-            owner: user,
+            owner: nickname,
             title: title,
             content: memo,
             cursorStart: cursorStart,
@@ -139,7 +144,7 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
     const updatedLastwork = await models.Member.update({
         lastwork: createdResult.dataValues.id
     }, {
-            where: { nickname: user }
+            where: { nickname }
         });
 
     if (updatedLastwork != 1) {
@@ -152,15 +157,17 @@ router.post('/memo/:user', asyncErrorHandle(async (req, res) => {
 }));
 
 // 메모 삭제
-router.delete('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
-    let token = req.headers['authorization'];
-    let user = req.params.user;
+router.delete('/memo/:nickname/:currentFile', asyncErrorHandle(async (req, res) => {
+    const nickname = req.params.nickname;
+    try {
+        await decodeToken(req, nickname);
+    } catch (e) {
+        console.log(e);
+        return res.sendStatus(400);
+    }
+
     let memoId = req.params.currentFile;
-
-    let decodedToken = await auth.verifyToken(token);
-    if (decodedToken.nickname !== user) return res.sendStatus(404);
-
-    const destroyedResult = await models.Memo.destroy({ where: { owner: user, id: memoId } });
+    const destroyedResult = await models.Memo.destroy({ where: { owner: nickname, id: memoId } });
     if (destroyedResult != 1) {
         res.status(200);
         res.json({ body: `삭제에 실패했습니다` });
@@ -170,13 +177,20 @@ router.delete('/memo/:user/:currentFile', asyncErrorHandle(async (req, res) => {
     const updatedLastwork = await models.Member.update({
         lastwork: null
     }, {
-            where: { nickname: user }
+            where: { nickname }
         });
+
     if (updatedLastwork != 1) {
         console.log(updatedLastwork);
     }
     res.status(200);
     res.json({ body: `삭제가 완료되었습니다` });
 }));
+
+async function decodeToken(req, nickname) {
+    let token = req.headers['authorization'];
+    let decodedToken = await auth.verifyToken(token);
+    if (decodedToken.nickname !== nickname) throw new UserException(400, '다시 로그인 해 주세요');
+}
 
 module.exports = router;
