@@ -10,11 +10,9 @@ router.post('/signup', asyncErrorHandle(async (req, res) => {
 
     assertSignupItemsExist(nickname, email, pwd, checkpwd);
     await assertEmailIsNotDuplicated(email);
-    // TODO: email 형식 validation 하기
-    // assertEmailFormIsValid(email);
+    assertEmailFormIsValid(email);
     await assertNicknameIsNotDuplicated(nickname);
-    // TODO: pwd 한영+최소 자릿수 validation 하기
-    // assertPasswordIsValid(pwd);
+    assertPasswordIsValid(pwd);
     assertPasswordIsMatched(pwd, checkpwd);
     await signup(pwd, nickname, email);
 
@@ -38,10 +36,17 @@ router.post('/login', asyncErrorHandle(async (req, res) => {
     res.json({token, nickname});
 }));
 
+
 function assertSignupItemsExist(nickname, email, pwd, checkpwd) {
     if (!nickname || !email || !pwd || !checkpwd) {
         throw new UserException(400, '모든 항목을 입력해주셔야 가입이 가능합니다');
     }
+}
+
+function assertEmailFormIsValid(email) {
+    const validationExpression = /\S+@\S+/;
+    const emailValidation = validationExpression.test(String(email).toLowerCase());
+    if (!emailValidation) throw new UserException(400, '이메일 형식이 잘못되었습니다');
 }
 
 async function assertEmailIsNotDuplicated(email) {
@@ -56,6 +61,12 @@ async function assertNicknameIsNotDuplicated(nickname) {
     if (queryResult != null && queryResult.dataValues.nickname === nickname) {
         throw new UserException(400, '닉네임이 이미 존재합니다');
     }
+}
+
+function assertPasswordIsValid(pwd) {
+    const pwdExpression = /(?=.*\d)(?=.*[a-z]).{6,}/;
+    const pwdValidation = pwdExpression.test(pwd);
+    if (!pwdValidation || pwd.length < 4) throw new UserException(400, '숫자와 영소문자를 조합한 최소 4자리 이상의 비밀번호를 입력하세요');
 }
 
 function assertPasswordIsMatched(pwd, checkpwd) {
