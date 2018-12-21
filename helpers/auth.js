@@ -1,12 +1,16 @@
 const jwt = require('jsonwebtoken'),
     crypto = require('crypto');
 
+const JWT_SECRET_CODE = 'secretCode',
+    PWD_SALT = 'let there be salt';
+
+
 // jwt 토큰 Promise로 생성
 function createToken(nickname) {
     return new Promise((resolve, reject) => {
         jwt.sign({
             nickname: nickname
-        }, 'secretCode', {
+        }, JWT_SECRET_CODE, {
                 expiresIn: '7d'
             }, (err, token) => {
                 if (err) reject(err);
@@ -19,14 +23,13 @@ function createToken(nickname) {
 function verifyToken(token) {
     return new Promise((resolve, reject) => {
         jwt.verify(
-            token, 'secretCode', (err, decodedToken) => {
+            token, JWT_SECRET_CODE, (err, decodedToken) => {
                 if (err || decodedToken == 'undefined') reject(err);
                 resolve(decodedToken);
             });
     });
 }
 
-const SALT = 'let there be salt';
 function pbkdf2Async(pwd, salt) {
     return new Promise((resolve, reject) => {
         crypto.pbkdf2(pwd, salt.toString('base64'), 130492, 64, 'sha512', function (err, pwd) {
@@ -38,7 +41,7 @@ function pbkdf2Async(pwd, salt) {
 
 
 module.exports = {
-    SALT,
+    SALT: PWD_SALT,
     createToken,
     verifyToken,
     pbkdf2Async
