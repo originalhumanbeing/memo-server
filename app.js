@@ -1,7 +1,10 @@
 const express = require('express'),
     bodyParser = require('body-parser'),
     cors = require('cors'),
+    env = process.env.NODE_ENV || 'development',
     app = express();
+
+const config = require('./config')[env];
 
 // middleware
 app.use(cors());
@@ -27,6 +30,8 @@ app.use((err, req, res, next) => {
 });
 
 // run
-app.listen(8080, () => {
+app.listen(config.serverPort, () => {
     console.log('Server started!');
 });
+
+module.exports = app;

@@ -4,6 +4,11 @@ const models = require('../models'),
     {UserException, UnexpectedException} = require('../helpers/exceptions'),
     {asyncErrorHandle} = require('../helpers/asyncHelper');
 
+router.get('/version', (req, res) => {
+    res.send({
+        version: '1.0.0'
+    });
+});
 
 router.post('/signup', asyncErrorHandle(async (req, res) => {
     const {nickname, email, pwd, checkpwd} = req.body;
