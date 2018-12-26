@@ -57,7 +57,7 @@ function assertEmailFormIsValid(email) {
 async function assertEmailIsNotDuplicated(email) {
     let queryResult = await models.Member.findOne({where: {email}});
     if (queryResult != null && queryResult.dataValues.email === email) {
-        throw new UserException(400, '아이디가 이미 존재합니다');
+        throw new UserException(400, '이메일이 이미 존재합니다');
     }
 }
 
@@ -69,7 +69,7 @@ async function assertNicknameIsNotDuplicated(nickname) {
 }
 
 function assertPasswordIsValid(pwd) {
-    const pwdExpression = /(?=.*\d)(?=.*[a-z]).{6,}/;
+    const pwdExpression = /(?=.*\d)(?=.*[a-z]).{4,}/;
     const pwdValidation = pwdExpression.test(pwd);
     if (!pwdValidation || pwd.length < 4) throw new UserException(400, '숫자와 영소문자를 조합한 최소 4자리 이상의 비밀번호를 입력하세요');
 }
