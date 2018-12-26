@@ -3,14 +3,6 @@ const request = require('supertest');
 const models = require('../models/index');
 
 
-describe('Auth Test', () => {
-    test('version', async () => {
-        const response = await request(app).get('/version');
-        expect(response.statusCode).toBe(200);
-        expect(response.body.version).toBe("1.0.0")
-    });
-});
-
 // Arange Act Assert
 describe('Auth Signup Test', () => {
     const nickname = 'pillow';
