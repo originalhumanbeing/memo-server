@@ -84,11 +84,13 @@ async function signup(pwd, nickname, email) {
 }
 
 function assertLoginItemsExist(id, pwd) {
-    if (!id || !pwd) throw new UserException(400, '모든 항목을 입력해주셔야 로그인이 가능합니다');
+    if (!id || !pwd)
+        throw new UserException(400, '모든 항목을 입력해주셔야 로그인이 가능합니다');
 }
 
 async function assertIdExist(id, thisMember) {
-    if (thisMember === null) throw new UserException(400, '아이디가 존재하지 않습니다');
+    if (thisMember === null)
+        throw new UserException(400, '아이디가 존재하지 않습니다');
 }
 
 async function assertPasswordIsCorrect(pwd, thisMember) {
