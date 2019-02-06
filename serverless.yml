@@ -1,0 +1,45 @@
+service:
+  name: memo-server
+
+# Add the serverless-webpack plugin
+plugins:
+- serverless-offline
+
+package: # Optional deployment packaging configuration
+  exclude:
+  - .git
+  - .idea/**
+  - package-lock.json
+  - README.md
+  - docker_mysql
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  region: ap-northeast-2
+  stage: dev
+  vpc:
+    securityGroupIds:
+    - sg-09629c76c386e7bea
+    subnetIds:
+    - subnet-3f5a5656
+    - subnet-5331741e
+  environment:
+    NODE_ENV: production
+    DB_USERNAME: humanbeing
+    DB_PASSWORD: "secret" # 웹 콘솔에서 수동으로 입력
+    DB_DATABASE: knowrememo
+    DB_HOST: memomemo.cbavtvyv0hu6.ap-northeast-2.rds.amazonaws.com
+
+functions:
+  app:
+    handler: lambda.handler
+    events:
+    - http:
+        path: '/'
+        method: ANY
+        cors: true
+    - http:
+        path: '{proxy+}'
+        method: ANY
+        cors: true
